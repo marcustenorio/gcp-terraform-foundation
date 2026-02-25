@@ -12,6 +12,12 @@ resource "google_compute_subnetwork" "subnet" {
   network                  = google_compute_network.vpc.id
   ip_cidr_range            = var.subnet_cidr
   private_ip_google_access = true
+
+  log_config {
+    aggregation_interval = "INTERVAL_10_MIN"
+    flow_sampling        = 0.1
+    metadata             = "INCLUDE_ALL_METADATA"
+  }
 }
 
 resource "google_compute_firewall" "deny_all_ingress" {
