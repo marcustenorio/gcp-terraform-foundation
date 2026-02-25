@@ -49,10 +49,21 @@ jobs:
         with:
           terraform_version: "1.6.6"
 
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v0.52.0
+
       # Vamos rodar dentro do ambiente dev
       - name: Terraform fmt (check)
         working-directory: environments/dev
         run: terraform fmt -check -recursive
+
+      - name: TFLint
+        working-directory: environments/dev
+        run: |
+          tflint --init
+          tflint
 
       - name: Terraform init
         working-directory: environments/dev
