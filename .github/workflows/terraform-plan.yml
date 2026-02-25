@@ -70,6 +70,7 @@ jobs:
         with:
           directory: .
           framework: terraform
+          external_checks_dirs: policies/checkov
 
       - name: Terraform init
         working-directory: environments/dev
