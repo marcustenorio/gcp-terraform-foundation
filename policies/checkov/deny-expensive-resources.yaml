@@ -1,0 +1,19 @@
+metadata:
+  name: "deny-expensive-resources"
+  id: "CUSTOM_GCP_DENY_EXPENSIVE_1"
+  category: "cost"
+  severity: "HIGH"
+  guideline: "Block expensive GCP resources in Terraform for the lab project."
+
+definition:
+  and:
+    - cond_type: "attribute"
+      resource_types:
+        - "google_compute_instance"
+        - "google_container_cluster"
+        - "google_compute_router"
+        - "google_compute_router_nat"
+        - "google_compute_address"
+        - "google_compute_forwarding_rule"
+      attribute: "resource_type"
+      operator: "exists"

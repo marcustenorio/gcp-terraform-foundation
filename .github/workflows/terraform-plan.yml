@@ -21,6 +21,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+    
+      - name: Debug workspace
+        run: |
+          pwd
+          ls -la
+          ls -la environments || true
+          ls -la environments/dev || true
+          find . -maxdepth 3 -type d -print
 
       # Autenticação no GCP sem chave (WIF)
       - name: Authenticate to Google Cloud (WIF)
@@ -38,10 +49,28 @@ jobs:
         with:
           terraform_version: "1.6.6"
 
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v0.52.0
+
       # Vamos rodar dentro do ambiente dev
       - name: Terraform fmt (check)
         working-directory: environments/dev
         run: terraform fmt -check -recursive
+
+      - name: TFLint
+        working-directory: environments/dev
+        run: |
+          tflint --init
+          tflint
+
+      - name: Checkov (static scan)
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          framework: terraform
+          external_checks_dirs: policies/checkov
 
       - name: Terraform init
         working-directory: environments/dev
