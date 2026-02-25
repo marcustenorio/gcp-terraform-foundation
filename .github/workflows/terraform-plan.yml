@@ -1,0 +1,79 @@
+name: terraform-plan
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write   # obrigatório para OIDC/WIF
+  pull-requests: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+
+    env:
+      TF_IN_AUTOMATION: "true"
+      TF_INPUT: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Autenticação no GCP sem chave (WIF)
+      - name: Authenticate to Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: "projects/701291960653/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
+          service_account: "tf-gha-sa@gcp-sre-lab-488421.iam.gserviceaccount.com"
+
+      # (Opcional mas útil) Instala gcloud para debug/validação
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Terraform setup
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.6.6"
+
+      # Vamos rodar dentro do ambiente dev
+      - name: Terraform fmt (check)
+        working-directory: environments/dev
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init
+        working-directory: environments/dev
+        run: terraform init
+
+      - name: Terraform validate
+        working-directory: environments/dev
+        run: terraform validate
+
+      - name: Terraform plan
+        id: plan
+        working-directory: environments/dev
+        run: |
+          terraform plan -no-color | tee plan.txt
+
+      # Comenta o plan no PR (limitando tamanho para evitar estourar)
+      - name: Comment plan on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('environments/dev/plan.txt', 'utf8');
+            const body = [
+              "### Terraform Plan (dev)",
+              "```",
+              plan.substring(0, 60000),
+              "```"
+            ].join("\n");
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body
+            });
