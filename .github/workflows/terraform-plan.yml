@@ -21,6 +21,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+    
+      - name: Debug workspace
+        run: |
+          pwd
+          ls -la
+          ls -la environments || true
+          ls -la environments/dev || true
+          find . -maxdepth 3 -type d -print
 
       # Autenticação no GCP sem chave (WIF)
       - name: Authenticate to Google Cloud (WIF)
